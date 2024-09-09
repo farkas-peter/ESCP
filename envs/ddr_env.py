@@ -652,6 +652,9 @@ class DynDiffRobot(KinDiffRobot, gym.Env):
         self.system_dynamics = system_dynamics
 
 
+from gym.envs.registration import register
+register(id='DynDiffRobot-v0', entry_point=DynDiffRobot)
+
 if __name__ == '__main__':
     seed_everything(42)
     default_robot_config = {"dt": 0.1,
@@ -667,7 +670,10 @@ if __name__ == '__main__':
                             "robot_can_bypass_gate": True,
                             "seed": 42
                             }
-    env = DynDiffRobot(env_config=default_robot_config)
+
+    env = gym.make('DynDiffRobot-v0', env_config=default_robot_config)
+    # env = DynDiffRobot(env_config=default_robot_config)
+
     env.reset()
     env.action_space.seed(42)
 
