@@ -7,3 +7,5 @@ ray
 gym
 inspect
 sklearn
+dill
+scipy
