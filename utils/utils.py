@@ -4,41 +4,10 @@ import sys
 import tempfile
 import time
 from datetime import datetime
-from typing import Dict
 
 import numpy as np
-import pygame
 import torch
-from ray.rllib import BaseEnv, RolloutWorker, Policy
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
-from ray.rllib.evaluation import Episode
 from scipy.stats import loguniform
-
-
-class CustomCallbacks(DefaultCallbacks):
-    def on_episode_end(
-            self,
-            *,
-            worker: RolloutWorker,
-            base_env: BaseEnv,
-            policies: Dict[str, Policy],
-            episode: Episode,
-            env_index: int,
-            **kwargs
-    ):
-        info = episode.last_info_for()
-        cause = info['cause']
-        cause_list = ["standing_still", "success", "far", "collision", "slow", "wrong_direction"]
-
-        for cause_i in cause_list:
-            if cause_i in cause:
-                episode.custom_metrics[f"{cause_i}"] = 1
-            else:
-                episode.custom_metrics[f"{cause_i}"] = 0
-
-        episode.custom_metrics["travelled_dist"] = info['travelled_dist']
-        episode.custom_metrics["dist_from_goal"] = info['dist_from_goal']
-        episode.custom_metrics["angle_to_goal"] = info['angle_to_goal']
 
 
 def right_hand_side(t, x, ts, us, values, rhs_func):
@@ -202,7 +171,7 @@ def create_lognormal_dist(mean_value=None, std_value=None, min_value=None, max_v
         raise ValueError("The mean and standard deviation or the minimum and maximum values must be provided.")
 
     # Generate sample from a log-uniform distribution between the logarithms of the minimum and maximum values
-    log_uniform_samples = loguniform.rvs(a=min_value, b=max_value, size=size, random_state=np_random)
+    log_uniform_samples = loguniform.rvs(a=min_value, b=max_value, size=size)
 
     # Transform the log-uniform samples to samples between the original minimum and maximum values
     return float(log_uniform_samples)
@@ -228,49 +197,6 @@ def generate_random_value(default_value, min_value, max_value, ratio, np_random=
         log_deviation *= np_random.uniform(-1, 1)
         log_value = np.log(default_value) + log_deviation
     return np.exp(log_value)
-
-
-def keyboard_to_action(event, action, action_space_type):
-    if "discrete" in action_space_type:
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:  # turning right
-                action = 0
-            elif event.key == pygame.K_UP:  # going forward
-                action = 1
-            elif event.key == pygame.K_RIGHT:  # turning left
-                action = 2
-
-            if "complex" in action_space_type:
-                if event.key == pygame.K_a:  # turning right backward
-                    action = 3
-                if event.key == pygame.K_s:  # going backward
-                    action = 4
-                if event.key == pygame.K_d:  # turning left backward
-                    action = 5
-                if event.key == pygame.K_SPACE:  # stop
-                    action = 6
-                if event.key == pygame.K_q:  # turning right in one place
-                    action = 7
-                if event.key == pygame.K_e:  # turning left in one place
-                    action = 8
-
-    elif "continuous" in action_space_type:
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                action = [min(action[0] + 0.1, 1), action[1]]
-            elif event.key == pygame.K_DOWN:
-                action = [max(action[0] - 0.1, -1), action[1]]
-            elif event.key == pygame.K_w:
-                action = [action[0], min(action[1] + 0.1, 1)]
-            elif event.key == pygame.K_s:
-                action = [action[0], max(action[1] - 0.1, -1)]
-        print(f"Voltages: {action[1]:.2f}", f"{action[0]:.2f}")
-
-    if event.type == pygame.QUIT:
-        pygame.quit()
-        sys.exit()
-
-    return action
 
 
 def train_algo(algo, exit_criteria="episode_reward_mean", exit_treshold=0.95, max_iterations=None, verbose=False):

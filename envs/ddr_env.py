@@ -1,24 +1,25 @@
 import os
 import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import time
 import warnings
 
 import dill
-import gymnasium
+import gym
 import numpy as np
-import pygame
-from gymnasium import spaces
+# import pygame
+from gym import spaces
 from scipy.integrate import solve_ivp
 
 from utils.constants import KIN_ACTION_DICT, DYNAMIC_CONSTANTS, DYN_ACTION_DICT, DYNAMIC_CONSTANTS_RANGE, \
     HARD_DYNAMIC_CONSTANTS_RANGE, DYNAMIC_CONSTANTS_NORM_FACTS
 from utils.utils import limit_angles, right_hand_side, create_lognormal_dist, seed_everything, \
-    keyboard_to_action, generate_cone_smartly, calculate_dist_of_points
+    generate_cone_smartly, calculate_dist_of_points
 
 
-class KinDiffRobot(gymnasium.Env):
+class KinDiffRobot(gym.Env):
     def __init__(self, env_config, **kwargs):
-        super().__init__()
+        super(gym.Env).__init__()
         # Environment variables
         self.dt = env_config.get("dt", 0.1)
         self.max_dist_from_goal = env_config.get("max_dist_from_goal", 3.)
@@ -42,6 +43,7 @@ class KinDiffRobot(gymnasium.Env):
         self.action_multiplier = 1.
         self.action_space_type = env_config.get("action_space_type", "discrete_simple")
         self.observation_space_type = env_config.get("observation_space_type", "goal_robot")
+        self.np_random, _ = self._np_random(env_config.get("seed", 42))
 
         self.use_hard_scenarios = env_config.get("use_hard_scenarios", False)
         self.system_dynamics = list(DYNAMIC_CONSTANTS.values())
@@ -59,8 +61,14 @@ class KinDiffRobot(gymnasium.Env):
         self.action_space = self._create_action_space()
         self.observation_space, self.observation_space_type, self.normalizing_factors = self._create_observation_space()
 
+    def _np_random(self, seed):
+        # Based on: https://github.com/Farama-Foundation/Gymnasium/blob/main/gymnasium/utils/seeding.py
+        seed_seq = np.random.SeedSequence(seed)
+        np_seed = seed_seq.entropy
+        rng = np.random.Generator(np.random.PCG64(seed_seq))
+        return rng, np_seed
+
     def reset(self, seed=None, **kwargs):
-        super().reset(seed=seed)
         # Reset robot dynamics
         self.robot_state = np.zeros((15,))
         self.robot_x, self.robot_y, self.robot_theta = 0., 0., np.deg2rad(90 - self.np_random.integers(-85, 85))
@@ -272,7 +280,7 @@ class KinDiffRobot(gymnasium.Env):
                 obs += [self._observe_robot_state()]
             elif obs_type == "dynamics":
                 obs += [self.system_dynamics]  # [np.array(list(DYNAMIC_CONSTANTS.values()), dtype=float)]
-        return np.concatenate(obs, dtype=np.float32)
+        return np.concatenate(obs).astype(np.float32)
 
     def _normalize_obs(self, obs):
         # Normalizing the observation between -1 and 1
@@ -490,98 +498,99 @@ class KinDiffRobot(gymnasium.Env):
 
         return angle_to_perpendicular
 
-    def _create_pygame_visualization(self, width: int, height: int):
-        # Creating the PyGame window
-        pygame.init()
-        self.screen = pygame.display.set_mode((width, height))
-        pygame.display.set_caption("Robot visualisation")
-        # Loading the robot image
-        filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "robot.png")
-        self.robot_img = pygame.image.load(filename).convert()
-        self.robot_img.set_colorkey((255, 255, 255))
-        # Loading the arrow image
-        filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "arrow.png")
-        self.arrow_img = pygame.image.load(filename).convert()
-        self.arrow_img.set_colorkey((255, 255, 255))
-        self.arrow_img = pygame.transform.scale(self.arrow_img, (50, 25))
+    # def _create_pygame_visualization(self, width: int, height: int):
+    #     # Creating the PyGame window
+    #     pygame.init()
+    #     self.screen = pygame.display.set_mode((width, height))
+    #     pygame.display.set_caption("Robot visualisation")
+    #     # Loading the robot image
+    #     filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "robot.png")
+    #     self.robot_img = pygame.image.load(filename).convert()
+    #     self.robot_img.set_colorkey((255, 255, 255))
+    #     # Loading the arrow image
+    #     filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "arrow.png")
+    #     self.arrow_img = pygame.image.load(filename).convert()
+    #     self.arrow_img.set_colorkey((255, 255, 255))
+    #     self.arrow_img = pygame.transform.scale(self.arrow_img, (50, 25))
 
     def render(self, mode="human"):
-        if self.rendering:
-            # If the PyGame window visualizer is not created, create it
-            if self.screen is None:
-                self._create_pygame_visualization(width=self.screen_size, height=self.screen_size)
+        pass
+    #     if self.rendering:
+    #         # If the PyGame window visualizer is not created, create it
+    #         if self.screen is None:
+    #             self._create_pygame_visualization(width=self.screen_size, height=self.screen_size)
+    #
+    #         # Clearing the screen
+    #         self.screen.fill((230, 230, 230))
+    #
+    #         # Scale factor
+    #         x, y = self.screen_size / 2, self.screen_size / 2
+    #
+    #         # Rotating and displaying the arrow
+    #         image_rotated = pygame.transform.rotate(self.arrow_img, np.rad2deg(self.goal_point[2] + np.pi / 2))
+    #         image_rect = image_rotated.get_rect(center=(x, y))
+    #         self.screen.blit(image_rotated, image_rect)
+    #
+    #         # rescaling the robot image with robot width
+    #         image_rotated = pygame.transform.scale(self.robot_img, (int(self.scale * self.system_dynamics[5]),
+    #                                                                 int(self.system_dynamics[5] * (
+    #                                                                         18 / 48) * self.scale)))
+    #         # Rotating and displaying the robot image
+    #         pygame.draw.circle(self.screen, (0, 0, 0), (x + self.scale * (self.robot_x - self.goal_point[0]),
+    #                                                     y - self.scale * (self.robot_y - self.goal_point[1])),
+    #                            radius=(self.system_dynamics[5] / 2 * self.scale), width=2, )
+    #         image_rotated = pygame.transform.rotate(image_rotated, np.rad2deg(self.robot_state[2] - np.pi / 2))
+    #         image_rect = image_rotated.get_rect(center=(x + self.scale * (self.robot_x - self.goal_point[0]),
+    #                                                     y - self.scale * (self.robot_y - self.goal_point[1])))
+    #         self.screen.blit(image_rotated, image_rect)
+    #
+    #         # Drawing the goal point in the center of the screen (red circle)
+    #         pygame.draw.circle(self.screen, (255, 0, 0), (x, y), radius=(self.cone_radius * self.scale), width=0)
+    #
+    #         # Drawing gate cones (black circles) and obstacles (blue circles)
+    #         for i, cone in enumerate(self.goal_cones + self.obstacles):
+    #             pygame.draw.circle(self.screen, color=(0, 0, 0 if i < len(self.goal_cones) else 255),
+    #                                radius=(self.cone_radius * self.scale), width=0,
+    #                                center=(x + self.scale * (cone[0] - self.goal_point[0]),
+    #                                        y - self.scale * (cone[1] - self.goal_point[1])))
+    #
+    #         # Drawing the maximum distance that the roboto can go from the gate (black circle)
+    #         pygame.draw.circle(self.screen, (0, 0, 0), (x, y), radius=self.max_dist_from_goal * self.scale, width=2)
+    #         # Writing the distance to gate in the top right corner of the screen
+    #         font = pygame.font.Font('freesansbold.ttf', 10)
+    #         texts_to_display = [f"Distance to gate: {self.prev_dist_from_goal:.2f}",
+    #                             f"Angle to gate: {self.prev_ang_between_robot_and_gate:.2f}",
+    #                             f"Angle to face: {self._get_angle_to_perpendicular_w_gate():.2f}"]
+    #         for i, text in enumerate(texts_to_display):
+    #             text = font.render(text, True, (0, 0, 0))
+    #             textRect = text.get_rect()
+    #             textRect.topleft = (10, 10 + 15 * i)
+    #             self.screen.blit(text, textRect)
+    #
+    #         # Drawing system dynamics onto the left side of the screen
+    #         text = font.render(f"System dynamics: {str([f'{a:.2f}' for a in self.system_dynamics])}", True, (0, 0, 0))
+    #         textRect = text.get_rect()
+    #         textRect.topleft = (10, self.screen_size - 10)
+    #         self.screen.blit(text, textRect)
+    #
+    #         # Stopping the program via closing the PyGame window
+    #         for event in pygame.event.get():
+    #             if event.type == pygame.QUIT:
+    #                 pygame.quit()
+    #                 sys.exit()
+    #
+    #         pygame.display.update()
+    #
+    #     return True
+    #
+    # def stop(self):
+    #     if self.rendering:
+    #         pygame.quit()
 
-            # Clearing the screen
-            self.screen.fill((230, 230, 230))
 
-            # Scale factor
-            x, y = self.screen_size / 2, self.screen_size / 2
-
-            # Rotating and displaying the arrow
-            image_rotated = pygame.transform.rotate(self.arrow_img, np.rad2deg(self.goal_point[2] + np.pi / 2))
-            image_rect = image_rotated.get_rect(center=(x, y))
-            self.screen.blit(image_rotated, image_rect)
-
-            # rescaling the robot image with robot width
-            image_rotated = pygame.transform.scale(self.robot_img, (int(self.scale * self.system_dynamics[5]),
-                                                                    int(self.system_dynamics[5] * (
-                                                                            18 / 48) * self.scale)))
-            # Rotating and displaying the robot image
-            pygame.draw.circle(self.screen, (0, 0, 0), (x + self.scale * (self.robot_x - self.goal_point[0]),
-                                                        y - self.scale * (self.robot_y - self.goal_point[1])),
-                               radius=(self.system_dynamics[5] / 2 * self.scale), width=2, )
-            image_rotated = pygame.transform.rotate(image_rotated, np.rad2deg(self.robot_state[2] - np.pi / 2))
-            image_rect = image_rotated.get_rect(center=(x + self.scale * (self.robot_x - self.goal_point[0]),
-                                                        y - self.scale * (self.robot_y - self.goal_point[1])))
-            self.screen.blit(image_rotated, image_rect)
-
-            # Drawing the goal point in the center of the screen (red circle)
-            pygame.draw.circle(self.screen, (255, 0, 0), (x, y), radius=(self.cone_radius * self.scale), width=0)
-
-            # Drawing gate cones (black circles) and obstacles (blue circles)
-            for i, cone in enumerate(self.goal_cones + self.obstacles):
-                pygame.draw.circle(self.screen, color=(0, 0, 0 if i < len(self.goal_cones) else 255),
-                                   radius=(self.cone_radius * self.scale), width=0,
-                                   center=(x + self.scale * (cone[0] - self.goal_point[0]),
-                                           y - self.scale * (cone[1] - self.goal_point[1])))
-
-            # Drawing the maximum distance that the roboto can go from the gate (black circle)
-            pygame.draw.circle(self.screen, (0, 0, 0), (x, y), radius=self.max_dist_from_goal * self.scale, width=2)
-            # Writing the distance to gate in the top right corner of the screen
-            font = pygame.font.Font('freesansbold.ttf', 10)
-            texts_to_display = [f"Distance to gate: {self.prev_dist_from_goal:.2f}",
-                                f"Angle to gate: {self.prev_ang_between_robot_and_gate:.2f}",
-                                f"Angle to face: {self._get_angle_to_perpendicular_w_gate():.2f}"]
-            for i, text in enumerate(texts_to_display):
-                text = font.render(text, True, (0, 0, 0))
-                textRect = text.get_rect()
-                textRect.topleft = (10, 10 + 15 * i)
-                self.screen.blit(text, textRect)
-
-            # Drawing system dynamics onto the left side of the screen
-            text = font.render(f"System dynamics: {str([f'{a:.2f}' for a in self.system_dynamics])}", True, (0, 0, 0))
-            textRect = text.get_rect()
-            textRect.topleft = (10, self.screen_size - 10)
-            self.screen.blit(text, textRect)
-
-            # Stopping the program via closing the PyGame window
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-
-            pygame.display.update()
-
-        return True
-
-    def stop(self):
-        if self.rendering:
-            pygame.quit()
-
-
-class DynDiffRobot(KinDiffRobot, gymnasium.Env):
+class DynDiffRobot(KinDiffRobot, gym.Env):
     def __init__(self, env_config):
-        gymnasium.Env.__init__(self)
+        gym.Env.__init__(self)
         KinDiffRobot.__init__(self, env_config)
 
         # Loading the RHS of the derived robot model
@@ -656,21 +665,21 @@ if __name__ == '__main__':
                             "randomize_every_n_steps": None,
                             "use_final_error_reward": True,
                             "robot_can_bypass_gate": True,
+                            "seed": 42
                             }
     env = DynDiffRobot(env_config=default_robot_config)
-    env.reset(54)
-    pygame.init()
+    env.reset()
+    env.action_space.seed(42)
 
     for episode in range(10):
         done = False
         env.reset()
         action = 6 if "discrete" in env.action_space_type else [0., 0.]
         while not done:
-            for event in pygame.event.get():
-                action = keyboard_to_action(event, action, env.action_space_type)
+            action = env.action_space.sample()
             state, reward, done, _, info = env.step(action)
             env.render()
             time.sleep(0.1)
-        print("Required steps: ", env.current_step, " Reward: ", reward, " Info: ", info)
+        print("Required steps: ", env.current_step, " Reward: ", reward, " Info: ", info["dynamics"])
 
     env.close()
