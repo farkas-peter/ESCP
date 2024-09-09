@@ -73,7 +73,7 @@ class Parameter:
     def parse(self):
         parser = argparse.ArgumentParser(description=EXPERIMENT_TARGET)
 
-        self.env_name = "Hopper-v2"
+        self.env_name = "GridWorldPlat-v2"
         parser.add_argument('--env_name', default=self.env_name, metavar='G',
                             help='name of the environment to run')
         self.register_param('env_name')
@@ -481,9 +481,9 @@ class Parameter:
         self.arg_names.append(name)
 
     def get_experiment_description(self):
-        description = f"本机{self.host_name}, ip为{self.ip}\n"
-        description += f"目前实验目的为{self.experiment_target}\n"
-        description += f"实验简称: {self.short_name}\n"
+        description = f"host_name{self.host_name}, ip{self.ip}\n"
+        description += f"experiment_target{self.experiment_target}\n"
+        description += f"short_name: {self.short_name}\n"
         description += f"commit id: {self.commit_id}\n"
         vars = ''
         important_config = self.important_configs()
