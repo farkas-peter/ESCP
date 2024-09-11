@@ -11,9 +11,9 @@ import numpy as np
 from gym import spaces
 from scipy.integrate import solve_ivp
 
-from utils.constants import KIN_ACTION_DICT, DYNAMIC_CONSTANTS, DYN_ACTION_DICT, DYNAMIC_CONSTANTS_RANGE, \
+from utils.ddr_constants import KIN_ACTION_DICT, DYNAMIC_CONSTANTS, DYN_ACTION_DICT, DYNAMIC_CONSTANTS_RANGE, \
     HARD_DYNAMIC_CONSTANTS_RANGE, DYNAMIC_CONSTANTS_NORM_FACTS
-from utils.utils import limit_angles, right_hand_side, create_lognormal_dist, seed_everything, \
+from utils.ddr_utils import limit_angles, right_hand_side, create_lognormal_dist, seed_everything, \
     generate_cone_smartly, calculate_dist_of_points
 
 
