@@ -73,9 +73,11 @@ class Parameter:
     def parse(self):
         parser = argparse.ArgumentParser(description=EXPERIMENT_TARGET)
 
-        self.env_name = "GridWorldPlat-v2"
+        self.env_name = "DynDiffRobotESCP-v0"
         parser.add_argument('--env_name', default=self.env_name, metavar='G',
-                            help='name of the environment to run')
+                            help='name of the environment to run', choices=['DynDiffRobotESCP-v0', 'GridWorldPlat-v2',
+                                                                            'Hopper-v2', 'HalfCheetah-v2', 'Walker2d-v',
+                                                                            'Ant-v2', 'Humanoid-v2'])
         self.register_param('env_name')
 
         self.model_path = ""
@@ -243,12 +245,12 @@ class Parameter:
                             help="interval between saving model (default: 0, means don't save)")
         self.register_param('history_length')
 
-        self.task_num = 0
+        self.task_num = 40
         parser.add_argument('--task_num', type=int, default=self.task_num, metavar='N',
                             help="interval between saving model (default: 0, means don't save)")
         self.register_param('task_num')
 
-        self.test_task_num = 0
+        self.test_task_num = 40
         parser.add_argument('--test_task_num', type=int, default=self.test_task_num, metavar='N',
                             help="number of tasks for testing")
         self.register_param('test_task_num')
@@ -257,8 +259,8 @@ class Parameter:
         parser.add_argument('--use_true_parameter', action='store_true')
         self.register_param("use_true_parameter")
 
-        self.bottle_neck = False
-        parser.add_argument('--bottle_neck', action='store_true')
+        self.bottle_neck = True
+        parser.add_argument('--bottle_neck', action='store_true', default=self.bottle_neck)
         self.register_param("bottle_neck")
 
         self.transition_learn_aux = False
@@ -281,8 +283,8 @@ class Parameter:
         self.register_param('policy_max_gradient')
 
 
-        self.use_rmdm = False
-        parser.add_argument('--use_rmdm', action='store_true',
+        self.use_rmdm = True
+        parser.add_argument('--use_rmdm', action='store_true', default=self.use_rmdm,
                             help="use Relational Matrix Determinant Maximization or not")
         self.register_param('use_rmdm')
 
@@ -302,8 +304,8 @@ class Parameter:
         parser.add_argument('--enhance_ep', action='store_true')
         self.register_param('enhance_ep')
 
-        self.stop_pg_for_ep = False
-        parser.add_argument('--stop_pg_for_ep', action='store_true')
+        self.stop_pg_for_ep = True
+        parser.add_argument('--stop_pg_for_ep', action='store_true', default=self.stop_pg_for_ep)
         self.register_param('stop_pg_for_ep')
 
         self.use_contrastive = False
@@ -315,7 +317,7 @@ class Parameter:
                             help="update interval of rmdm")
         self.register_param('rmdm_update_interval')
 
-        self.rnn_fix_length = 0
+        self.rnn_fix_length = 16
         parser.add_argument('--rnn_fix_length', type=int, default=self.rnn_fix_length, metavar='N',
                             help="fix the rnn memory length to rnn_fix_length")
         self.register_param('rnn_fix_length')
@@ -364,7 +366,7 @@ class Parameter:
                             help="smooth  factor for ep module, 0.0 for apply concurrently")
         self.register_param('ep_smooth_factor')
 
-        self.rbf_radius = 80.0
+        self.rbf_radius = 3000.0
         parser.add_argument('--rbf_radius', type=float, default=self.rbf_radius, metavar='N',
                             help="radius of the rbf kerel")
         self.register_param('rbf_radius')

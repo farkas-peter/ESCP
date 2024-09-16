@@ -414,11 +414,14 @@ class NonstationaryEnv(Wrapper):
 if __name__ == '__main__':
     from grid_world import GridWorld
     from grid_world_general import RandomGridWorldPlat
-    env = NonstationaryEnv(gym.make('Humanoid-v2'), ['dof_damping_1_dim', 'gravity', 'body_mass', 'geom_friction', 'density'])
+    from ddr_env_escp import DynDiffRobotESCP
+
+    # env = NonstationaryEnv(gym.make('Humanoid-v2'), ['dof_damping_1_dim', 'gravity', 'body_mass', 'geom_friction', 'density'])
     # env = NonstationaryEnv(gym.make('GridWorldPlat-v2'), ['dof_damping_1_dim'])
-    print(env.param_min.shape)
-    #env2 =
-    #print(env2.metadata)
+    # env = NonstationaryEnv(gym.make('GridWorldPlat-v2'), ['dof_damping_1_dim'])
+
+    env = NonstationaryEnv(gym.make('DynDiffRobotESCP-v0'))
+    # print(env.param_min.shape)
     env.reset()
     tasks = env.sample_tasks(20)
     print(tasks[0])
@@ -434,10 +437,10 @@ if __name__ == '__main__':
             print(i)
             task = tasks[np.random.randint(0, 19)]
             print('task: ', task)
-            # env.set_task(task)
+            env.set_task(task)
             print('length: ', env.env_parameter_length)
             #print(env.env.model.opt.gravity)
-            print(env.unwrapped.model.dof_damping)
+            # print(env.unwrapped.model.dof_damping)
             print(env.init_params)
             print('parameter vec: ', env.env_parameter_vector)
             print('param_min: ', env.param_min)

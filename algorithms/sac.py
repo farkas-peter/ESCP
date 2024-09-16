@@ -21,6 +21,7 @@ from utils.visualize_repre import visualize_repre, visualize_repre_real_param
 import cProfile as profile
 from envs.grid_world import RandomGridWorld
 from envs.grid_world_general import RandomGridWorldPlat
+from envs.ddr_env_escp import DynDiffRobotESCP
 from algorithms.contrastive import ContrastiveLoss
 
 class SAC:
@@ -625,12 +626,12 @@ class SAC:
                     fig, fig_mean = visualize_repre(self.all_repre, self.all_valids,
                                                     os.path.join(self.logger.output_dir, 'visual.png'),
                                                     self.env_param_dict, self.all_tasks )
-                    fig_real_param = visualize_repre_real_param(self.all_repre, self.all_valids, self.all_tasks,
-                                                                self.env_param_dict)
+                    # fig_real_param = visualize_repre_real_param(self.all_repre, self.all_valids, self.all_tasks,
+                    #                                             self.env_param_dict)
                     if fig:
                         self.logger.tb.add_figure('figs/repre', fig, iter)
                         self.logger.tb.add_figure('figs/repre_mean', fig_mean, iter)
-                        self.logger.tb.add_figure('figs/repre_real', fig_real_param, iter)
+                        # self.logger.tb.add_figure('figs/repre_real', fig_real_param, iter)
                 self.logger.tb.add_figure('figs/policy_behaviour', representation_behaviour, iter)
             total_steps += self.parameter.min_batch_size
             training_end = time.time()

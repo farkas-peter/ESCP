@@ -16,6 +16,7 @@ from parameter.private_config import SKIP_MAX_LEN_DONE, NON_STATIONARY_PERIOD, N
 from log_util.logger import Logger
 from envs.grid_world import RandomGridWorld
 from envs.grid_world_general import RandomGridWorldPlat
+from envs.ddr_env_escp import DynDiffRobotESCP
 from parameter.private_config import ENV_DEFAULT_CHANGE
 
 
@@ -177,7 +178,8 @@ class EnvWorker:
         if done:
             self.ep_len_list.append(self.ep_len)
             self.ep_cumrew_list.append(self.ep_cumrew)
-            self.ep_rew_list.append(self.ep_cumrew / self.ep_len)
+            # self.ep_rew_list.append(self.ep_cumrew / self.ep_len)
+            self.ep_rew_list.append(self.ep_cumrew)
             state = self.reset(env_ind)
             self.state = self.extend_state(state)
         if need_info:
