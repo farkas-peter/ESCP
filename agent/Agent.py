@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import random
 import math
+import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.policy import Policy
@@ -167,6 +168,7 @@ class EnvWorker:
         next_state, reward, done, info = self.env.step(self.env.denormalization(action))
         if render:
             self.env.render()
+            time.sleep(self.env.render_sleep_time)
         if self.non_stationary:
             self.env_param_vector = self.env.env_parameter_vector
         current_env_step = self.env._elapsed_steps
@@ -325,11 +327,11 @@ class EnvRemoteArray:
         logs['TotalSteps'] = len(mem)
         return mem, logs
 
-    def sample1step(self, policy=None, random=False, device=torch.device('cpu'), env_ind=None):
+    def sample1step(self, policy=None, random=False, device=torch.device('cpu'), env_ind=None, render=False):
         assert not (policy is None and self.policy is None)
         cur_policy = policy if policy is not None else self.policy
         if (not self.use_remote) and self.worker_num == 1:
-            return self.sample1step1env(policy, random, device, env_ind)
+            return self.sample1step1env(policy, random, device, env_ind, render)
         if not cur_policy.inference_check_hidden(self.worker_num):
             cur_policy.inference_init_hidden(self.worker_num, device)
         if self.use_remote:
