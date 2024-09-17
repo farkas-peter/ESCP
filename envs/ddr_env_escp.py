@@ -671,7 +671,6 @@ class DynDiffRobotESCP(DynDiffRobot):
         # ESCP related variables
         self.diy_env = True
         self.fix_env = None
-        self.render_sleep_time = env_config["render_sleep_time"]
         # Removing 0s from the normalization factors, to avoid division by zero
         self.dyn_norm_factors = [1.0 if i == 0 else i for i in DYNAMIC_CONSTANTS_NORM_FACTS]
 
