@@ -685,6 +685,7 @@ class DynDiffRobotESCP(DynDiffRobot):
         for item in task_set:
             tasks.append(list(item))
 
+        print(f"--> Generated {len(tasks)} tasks.")
         return tasks
 
     def _robot_reset(self):
