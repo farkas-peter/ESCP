@@ -163,6 +163,10 @@ class SAC:
         self.logger.log('environment parameter dict: ')
         self.logger.log_dict_single(self.env_param_dict)
 
+        # Loading back a pretrained model
+        # dir_name = '/home/ray/deployment/log_file/DynDiffRobotESCP-v0-use_rmdm-rnn_len_16-bottle_neck-stop_pg_for_ep-ep_dim_2-1_tasknum1000_TEST'
+        # self.load(dir_name + '/model')
+
     @staticmethod
     def global_seed(*args, seed):
         for item in args:
@@ -605,7 +609,7 @@ class SAC:
                 self.timer.register_point('sample1step')
                 mem, log = self.training_agent.sample1step(self.policy,
                                                            self.replay_buffer.size < self.parameter.random_num,
-                                                           device=self.device)
+                                                           device=self.device, render=self.env.rendering)
                 self.timer.register_end()
 
                 if step % (self.parameter.update_interval * self.parameter.sac_inner_iter_num) == 0 \
@@ -678,17 +682,17 @@ class SAC:
         torch.save(self.value_optimizer.state_dict(), os.path.join(self.logger.model_output_dir, 'value_optim.pt'))
         torch.save(self.alpha_optimizer.state_dict(), os.path.join(self.logger.model_output_dir, 'alpha_optim.pt'))
 
-    def load(self):
-        self.policy.load(self.logger.model_output_dir, map_location=self.device)
-        self.value1.load(self.logger.model_output_dir, 0, map_location=self.device)
-        self.value2.load(self.logger.model_output_dir, 1, map_location=self.device)
-        self.target_value1.load(self.logger.model_output_dir, "target0", map_location=self.device)
-        self.target_value2.load(self.logger.model_output_dir, "target1", map_location=self.device)
-        self.policy_optimizer.load_state_dict(torch.load(os.path.join(self.logger.model_output_dir, 'policy_optim.pt'),
+    def load(self, dir_name):
+        self.policy.load(dir_name, map_location=self.device)
+        self.value1.load(dir_name, 0, map_location=self.device)
+        self.value2.load(dir_name, 1, map_location=self.device)
+        self.target_value1.load(dir_name, "target0", map_location=self.device)
+        self.target_value2.load(dir_name, "target1", map_location=self.device)
+        self.policy_optimizer.load_state_dict(torch.load(os.path.join(dir_name, 'policy_optim.pt'),
                                                          map_location=self.device))
-        self.value_optimizer.load_state_dict(torch.load(os.path.join(self.logger.model_output_dir, 'value_optim.pt'),
+        self.value_optimizer.load_state_dict(torch.load(os.path.join(dir_name, 'value_optim.pt'),
                                                         map_location=self.device))
-        self.alpha_optimizer.load_state_dict(torch.load(os.path.join(self.logger.model_output_dir, 'alpha_optim.pt'),
+        self.alpha_optimizer.load_state_dict(torch.load(os.path.join(dir_name, 'alpha_optim.pt'),
                                                         map_location=self.device))
 
     def test_non_stationary_repre(self):
