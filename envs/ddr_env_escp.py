@@ -665,8 +665,7 @@ class DynDiffRobotESCP(DynDiffRobot):
                       "observation_space_type": "goal_gates_obstacles_robot",
                       "random_range": 1.,
                       "seed": 42,
-                      "rendering": False,
-                      "render_sleep_time": 0.1, }
+                      "rendering": False, }
         super(DynDiffRobotESCP, self).__init__(env_config)
 
         # ESCP related variables

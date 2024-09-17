@@ -607,9 +607,15 @@ class SAC:
                 # self.policy.to(torch.device('cpu'))
                 self.policy.to(self.device)
                 self.timer.register_point('sample1step')
+
+                if hasattr(self.env, 'rendering'):
+                    rendering = self.env.rendering
+                else:
+                    rendering = False
+
                 mem, log = self.training_agent.sample1step(self.policy,
                                                            self.replay_buffer.size < self.parameter.random_num,
-                                                           device=self.device, render=self.env.rendering)
+                                                           device=self.device, render=rendering)
                 self.timer.register_end()
 
                 if step % (self.parameter.update_interval * self.parameter.sac_inner_iter_num) == 0 \

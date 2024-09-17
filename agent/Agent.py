@@ -168,7 +168,7 @@ class EnvWorker:
         next_state, reward, done, info = self.env.step(self.env.denormalization(action))
         if render:
             self.env.render()
-            time.sleep(self.env.render_sleep_time)
+            time.sleep(0.1)
         if self.non_stationary:
             self.env_param_vector = self.env.env_parameter_vector
         current_env_step = self.env._elapsed_steps
