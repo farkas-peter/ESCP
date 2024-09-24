@@ -76,7 +76,7 @@ class Parameter:
         self.env_name = "DynDiffRobotESCP-v0"
         parser.add_argument('--env_name', default=self.env_name, metavar='G',
                             help='name of the environment to run', choices=['DynDiffRobotESCP-v0', 'GridWorldPlat-v2',
-                                                                            'Hopper-v2', 'HalfCheetah-v2', 'Walker2d-v',
+                                                                            'Hopper-v2', 'HalfCheetah-v2', 'Walker2d-v2',
                                                                             'Ant-v2', 'Humanoid-v2'])
         self.register_param('env_name')
 
