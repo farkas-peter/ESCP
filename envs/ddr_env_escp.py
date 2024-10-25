@@ -702,7 +702,7 @@ class DynDiffRobotESCP(DynDiffRobot):
             # In GridWorld:
             # self.renv_flag = self.env_flag = self.fix_env
 
-        reset_state, _ =  super(DynDiffRobotESCP, self).reset()
+        reset_state, _ = super(DynDiffRobotESCP, self).reset()
 
         return reset_state
 

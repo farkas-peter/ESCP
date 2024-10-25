@@ -384,7 +384,11 @@ class EnvRemoteArray:
                         torch.device('cpu')).numpy()
         return action
 
-    def sample1step1env(self, policy, random=False, device=torch.device('cpu'), env_ind=None, render=False, need_info=False):
+    def sample1step1env(self, policy, random=False, device=torch.device('cpu'), env_ind=None, render=False, need_info=False, eval_mode=False):
+        # Info is always needed in eval mode
+        if eval_mode:
+            need_info = True
+
         if not policy.inference_check_hidden(1):
             policy.inference_init_hidden(1, device)
         cur_policy = policy
@@ -408,9 +412,14 @@ class EnvRemoteArray:
         logs = worker.collect_result()
         self.total_steps += 1
         logs['TotalSteps'] = self.total_steps
-        if need_info:
-            return mem, logs, info
-        return mem, logs
+
+        if not eval_mode:
+            if need_info:
+                return mem, logs, info
+            return mem, logs
+
+        else:
+            return [action, next_state, reward, done, info, mem, logs, task_ind, env_param, current_steps]
 
     def collect_samples(self, min_batch, policy=None, need_memory=False):
         for i in range(10):

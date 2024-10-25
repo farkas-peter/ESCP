@@ -1,4 +1,7 @@
+import json
 import os, sys
+import pickle
+
 import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from log_util.logger import Logger
@@ -25,7 +28,7 @@ from envs.ddr_env_escp import DynDiffRobotESCP
 from algorithms.contrastive import ContrastiveLoss
 
 class SAC:
-    def __init__(self):
+    def __init__(self, path_to_load=None, log_env=False):
         self.logger = Logger()
         # self.logger.set_tb_x_label('TotalInteraction')
         self.timer = Timer()
@@ -164,8 +167,25 @@ class SAC:
         self.logger.log_dict_single(self.env_param_dict)
 
         # Loading back a pretrained model
-        # dir_name = '/home/ray/deployment/log_file/DynDiffRobotESCP-v0-use_rmdm-rnn_len_16-bottle_neck-stop_pg_for_ep-ep_dim_2-1_tasknum1000_TEST'
-        # self.load(dir_name + '/model')
+        if path_to_load is not None:
+            self.path_to_load = path_to_load
+            self.load(path_to_load + '/model')
+
+        self.log_env = log_env
+        if self.log_env:
+            assert path_to_load is not None, 'path_to_load must be provided to log_env'
+
+            self.eval_dir = os.path.join(self.path_to_load, f'eval_{time.strftime("%Y%m%d_%H%M%S", time.gmtime())}')
+            if not os.path.exists(self.eval_dir):
+                os.makedirs(self.eval_dir)
+
+            self.env_log_path = os.path.join(self.eval_dir, "env_log")
+            if not os.path.exists(self.env_log_path):
+                os.makedirs(self.env_log_path)
+
+            self.file = None
+            self.current_file_id = 0
+            self.episode_log = []
 
     @staticmethod
     def global_seed(*args, seed):
@@ -582,6 +602,73 @@ class SAC:
         else:
             self.target_value1.copy_weight_from(self.value1, self.tau)
             self.target_value2.copy_weight_from(self.value2, self.tau)
+
+    def log_env_reset(self):
+        if self.file is None:
+            self.file = open(os.path.join(self.env_log_path, f"{str(self.current_file_id)}.pkl"), "bw")
+        else:
+            self.file.close()
+            self.current_file_id += 1
+            self.file = open(os.path.join(self.env_log_path, f"{str(self.current_file_id)}.pkl"), "bw")
+
+    def eval(self, episodes=10, rendering=False):
+        stat_dict = {}
+
+        self.training_agent.deterministic = True
+        self.policy.to(self.device)
+
+        # todo: custom info for mujoco envs
+
+        for ep in range(episodes):
+            episode_stat, info = {}, {}
+            action = self.training_agent.env.action_space.sample() * 0.
+            done = False
+
+            if self.log_env:
+                self.log_env_reset()
+                obs = self.training_agent.env.reset()
+                env_log_dict = {"t": getattr(self.env, "current_step", None), "obs": obs, "reward": None,
+                                "done": None, "truncated": None, "action_t-1": None, "cause": None,
+                                "robot_state": getattr(self.training_agent.env, "robot_state", None),
+                                }
+                self.episode_log.append(env_log_dict)
+            else:
+                obs = self.training_agent.env.reset()
+
+            while not done:
+                episode_stat["states"] = [obs] if "states" not in episode_stat else episode_stat["states"] + [obs]
+                episode_stat["actions"] = [action] if "actions" not in episode_stat else episode_stat["actions"] + [action]
+                episode_stat["infos"] = [info] if "infos" not in episode_stat else episode_stat["infos"] + [info]
+
+                result = self.training_agent.sample1step1env(policy=self.policy, random=False, env_ind=None,
+                                                             eval_mode=True, device=self.device, render=rendering)
+                action, obs, reward, done, info = result[0:5]
+
+                if self.log_env:
+                    env_log_dict = {"t": getattr(self.training_agent.env, "current_step", None), "obs": obs, "reward": reward,
+                                    "done": done, "truncated": None, "action_t-1": action,
+                                    "robot_state": getattr(self.training_agent.env, "robot_state", None) if not done else None,
+                                    }
+                    env_log_dict.update({key: value for key, value in info.items()})
+                    self.episode_log.append(env_log_dict)
+                    if done:
+                        pickle.dump(self.episode_log, self.file)
+                        self.episode_log = []
+
+                episode_stat["rewards"] = [reward] if "rewards" not in episode_stat else episode_stat["rewards"] + [reward]
+
+            episode_stat["states"] += [obs]
+            episode_stat["actions"] += [action]
+            episode_stat["infos"] += [info]
+
+            stat_dict[ep] = episode_stat
+
+        if self.log_env:
+            with open(f'{os.path.join(self.eval_dir, f"eval_stats.pkl")}', 'wb') as f:
+                pickle.dump(stat_dict, f)
+            with open(f'{os.path.join(self.eval_dir, f"eval_args.txt")}', 'w') as f:
+                json.dump('-', f, indent=2)
+
     def run(self):
         total_steps = 0
         if self.replay_buffer.size < self.parameter.start_train_num:
