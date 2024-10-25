@@ -7,5 +7,6 @@ data
 figs
 log_file
 baselines.tar.gz
+log_file/
 
 
