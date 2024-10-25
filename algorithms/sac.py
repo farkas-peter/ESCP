@@ -603,6 +603,16 @@ class SAC:
             self.target_value1.copy_weight_from(self.value1, self.tau)
             self.target_value2.copy_weight_from(self.value2, self.tau)
 
+    def _create_custom_info(self, info, done):
+        cause = "collision" if done else "no_info"
+
+        info.update({"cause": cause,
+                     "dist_from_goal": info["x_velocity"],
+                     "travelled_dist": info["x_position"],
+                     })
+
+        return info
+
     def log_env_reset(self):
         if self.file is None:
             self.file = open(os.path.join(self.env_log_path, f"{str(self.current_file_id)}.pkl"), "bw")
@@ -617,8 +627,6 @@ class SAC:
 
         self.training_agent.deterministic = True
         self.policy.to(self.device)
-
-        # todo: custom info for mujoco envs
 
         trange = tqdm.trange(episodes)
         for ep in trange:
@@ -651,6 +659,10 @@ class SAC:
                                     "done": done, "truncated": None, "action_t-1": action,
                                     "robot_state": getattr(self.training_agent.env, "robot_state", None) if not done else None,
                                     }
+
+                    if 'DynDiffRobot' not in self.parameter.env_name:
+                        info = self._create_custom_info(info, done)
+
                     env_log_dict.update({key: value for key, value in info.items()})
                     self.episode_log.append(env_log_dict)
                     if done:
