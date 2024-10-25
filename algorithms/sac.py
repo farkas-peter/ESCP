@@ -612,6 +612,7 @@ class SAC:
             self.file = open(os.path.join(self.env_log_path, f"{str(self.current_file_id)}.pkl"), "bw")
 
     def eval(self, episodes=10, rendering=False):
+        import tqdm
         stat_dict = {}
 
         self.training_agent.deterministic = True
@@ -619,7 +620,8 @@ class SAC:
 
         # todo: custom info for mujoco envs
 
-        for ep in range(episodes):
+        trange = tqdm.trange(episodes)
+        for ep in trange:
             episode_stat, info = {}, {}
             action = self.training_agent.env.action_space.sample() * 0.
             done = False
@@ -661,6 +663,7 @@ class SAC:
             episode_stat["actions"] += [action]
             episode_stat["infos"] += [info]
 
+            trange.set_description(f"Episode: {ep} Reward: {sum(episode_stat['rewards'])}")
             stat_dict[ep] = episode_stat
 
         if self.log_env:
