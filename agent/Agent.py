@@ -65,6 +65,7 @@ class EnvWorker:
         self.ep_rew_list = []
         self.state = self.reset(None)
         self.state = self.extend_state(self.state)
+        self.env_name = parameter.env_name
 
     def set_weight(self, state_dict):
         self.policy.load_state_dict(state_dict)
@@ -165,7 +166,17 @@ class EnvWorker:
 
     def step(self, action, env_ind=None, render=False, need_info=False):
         self.before_apply_action(action)
+
+        if need_info and 'DynDiffRobot' not in self.env_name:
+            x_position_before = self.env.sim.data.qpos[0]
+
         next_state, reward, done, info = self.env.step(self.env.denormalization(action))
+
+        if need_info and 'DynDiffRobot' not in self.env_name:
+            x_position_after = self.env.sim.data.qpos[0]
+            info['x_position'] = x_position_after
+            info['x_velocity'] = (x_position_after - x_position_before) / self.env.dt
+
         if render:
             self.env.render()
             time.sleep(0.1)
